@@ -25,3 +25,15 @@ Date: January 2, 2019
    - snakemake-5.4
  - [samtools-1.3.1](http://www.htslib.org/)
 
+## Tumour-Normal sample list
+The list of tumour-normal paired samples should be defined in a YAML file.  See `config/samples.yaml` for an example.  Both fields `samples` and `pairings` must to be provided.  `pairings` key must match the tumour sample while the value must match the normal sample.
+```
+samples:
+  tumor_sample_1:  /path/to/bam/tumor.bam
+  normal_sample_1:  /path/to/bam/normal.bam
+
+
+pairings:
+  tumor_sample_1:  normal_sample_1
+```
+

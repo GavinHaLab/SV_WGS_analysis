@@ -1,0 +1,14 @@
+__default__:
+    partition:  campus # users specified
+    mem:    4G
+    time:   "1:0:0"
+    ncpus:  1
+    ntasks: 1
+    output: logs/cluster/{rule}.%A.out
+
+runSvaba:
+    time: "100:0:0"
+    mem:    12G
+    ncpus:  4
+    ntasks: 1
+
