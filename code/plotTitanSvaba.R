@@ -9,7 +9,6 @@
 library(optparse)
 option_list <- list(
   make_option(c("--id"), type = "character", help = "Sample ID"),
-  make_option(c("--tenX_funcs"), type = "character", help = "Path to file containing 10X R functions to source."),
   make_option(c("--svaba_funcs"), type = "character", help = "Path to file containing SVABA R functions to source."),
   make_option(c("--plot_funcs"), type = "character", help = "Path to file containing plotting R functions to source."),
   make_option(c("--titan_libdir"), type = "character", help = "Directory containing source code. Specify if changes have been made to source code and want to over-ride package code."),
@@ -49,12 +48,10 @@ library(diagram)
 library(tools)
 library(SNPchip)
 library(VariantAnnotation)
+library(TitanCNA)
 
-source(paste0(opt$titan_libdir, "/R/haplotype.R"))
-source(opt$tenX_funcs)
 source(opt$svaba_funcs)
 source(opt$plot_funcs)
-
 
 id <- opt$id
 svFile <- opt$svFile
@@ -90,11 +87,14 @@ offset.factor <- 1.15 # sv drawn outside of plot
 lcol <- NULL
 arr.col <- NULL
 svabaCol <- "black"
-rescueCol <- "blue"
-lrCol <- "black"
-grocCol <- "black"
 manualCol <- "purple"
-seqinfo <- Seqinfo(genome=genomeBuild)
+bsg <- paste0("BSgenome.Hsapiens.UCSC.", genomeBuild)
+if (!require(bsg, character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE)) {
+	seqinfo <- Seqinfo(genome=genomeBuild)
+} else {
+	seqinfo <- seqinfo(get(bsg))
+}
+
 if (zoom){
   xlim <- c(startPos, endPos)
   cex <- 0.5
@@ -120,7 +120,7 @@ if (chrStr == "0" || is.null(chrStr) || chrStr != "None"){
 }
 if (plotType == "titan"){
 	cnColor <- TRUE
-	plotHaplotypeFrac <- TRUE
+	plotAllelicFrac <- TRUE
 	height <- height * 1.5
 }
 
@@ -129,6 +129,9 @@ if (!cnColor){
 }else{
   cnCol <- NULL
 }
+
+outImage <- paste0(outDir, "/", id, ".RData")
+save.image(file=outImage)
 
 if (!is.null(altSVFile) && altSVFile != "None"){
 	altSV <- read.delim(altSVFile, header=F, as.is=T)
@@ -150,8 +153,7 @@ if (genomeBuild == "hg38" && file.exists(cytobandFile)){
 
 outPlotDir <- outDir
 dir.create(outPlotDir)
-outImage <- paste0(outDir, "/", id, ".RData")
-save.image(file=outImage)
+
 
 message("Analyzing ", id)
 ulp <- fread(cnFile)
@@ -211,7 +213,7 @@ for (j in 1:length(chrStr)){
   }else{
   	pdf(outPlot, width = width, height=height)
 	}
-  if (plotHaplotypeFrac){ par(mfrow=c(2,1)); spacing <- 0  }
+  if (plotAllelicFrac){ par(mfrow=c(2,1)); spacing <- 0  }
 	
   if (plotSegs) { segsToPlot <- segs } else { segsToPlot <- NULL}
   
@@ -283,10 +285,10 @@ for (j in 1:length(chrStr)){
                   endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
   }
   
-  if (plotHaplotypeFrac){
-    message("Plotting haplotype fraction")
-    plotHaplotypeFraction(ulp[,-1], chrStr[j], resultType = "HaplotypeRatio", colType = "Haplotypes", 
-	  xlab="", ylim=c(0,1), xlim=xlim, cex=0.25, cex.axis=1.5, cex.lab=1.5, spacing = 4)
+  if (plotAllelicFrac){
+    message("Plotting allelic fraction")
+    plotAllelicRatio(dataIn=ulp[,-1], chr=chrStr[j], geneAnnot=NULL,  xlab="", ylim=c(0,1), 
+    	xlim=xlim, cex=0.25, cex.axis=1.5, cex.lab=1.5, spacing = 6)
 	  par(xpd=NA)
     
     if (genomeBuild == "hg38" && file.exists(cytobandFile)){

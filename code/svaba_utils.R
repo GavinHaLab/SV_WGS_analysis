@@ -319,11 +319,11 @@ loadVCFtoDataTableByChromosome <- function(svFiles, chrs = as.character(c(1:22, 
   sv <- getSVfromCollapsedVCF(vcf, chrs = chrs, genomeStyle = genomeStyle)
   ## filter by BXOL support ##
   message("Filtering SVABA calls...")
-  sv <- filterSVABA(sv, minSPAN=minSPAN, minSPANBX=minSPANBX, minBXOL=minBXOL, maxBXOL=maxBXOL, maxBXCount=maxBXCount, dupSV.bpDiff=dupSV.bpDiff)
+  sv <- filterSVABA(sv, minSPAN=minSPAN, dupSV.bpDiff=dupSV.bpDiff)
    return(sv=sv)
 }
 
-filterSVABA <- function(x, minSPAN = 10000, minSPANBX = 10000, minBXOL = 0, maxBXOL = Inf, maxBXCount = 10000, dupSV.bpDiff = 1000){
+filterSVABA <- function(x, minSPAN = 10000, dupSV.bpDiff = 1000){
   sv <- copy(x)
   ## filter by BXOL support ##
   sv$support <- NA
@@ -348,7 +348,7 @@ filterSVABA <- function(x, minSPAN = 10000, minSPANBX = 10000, minBXOL = 0, maxB
   #else{ vcfSampleBX <- rbind(vcfSampleBX, vcfBX); values(vcfSampleBX) <- values(vcfSampleBX)[1:5] }
   
   sv <- removeDupInterChrSV(sv)
-  sv <- removeDupNonPassSV(sv, bp.diff = dupSV.bpDiff)
+  #sv <- removeDupNonPassSV(sv, bp.diff = dupSV.bpDiff)
   return(copy(sv))
 }
 
@@ -610,7 +610,7 @@ getSegSVoverlap <- function(segs, sv, event.cn, buffer = 1e5, interChr = FALSE){
         setnames(sv.gr, c("chromosome", "start", "end"))
         sv.gr <- as(sv.gr, "GRanges")
         hits0 <- findOverlaps(subject = segs.gr, query = sv.gr)
-        overlap.len <- width(ranges(hits0, query = ranges(sv.gr), subject = ranges(segs.gr)))
+        overlap.len <- width(overlapsRanges(hits0, query = ranges(sv.gr), subject = ranges(segs.gr)))
         names(overlap.len) <- queryHits(hits0)
         sameRowInd <- which(queryHits(hits0) == subjectHits(hits0))
         seg.sv[queryHits(hits0)[sameRowInd], overlap.length := overlap.len[sameRowInd]]
@@ -765,7 +765,7 @@ annotateSVbetweenBkptsWithCN <- function(sv, cn, segs, buffer = 1e5,
   annot.seg <- ldply(1:length(hits.seg.l), .fun=function(i){ 
     x <- hits.seg.l[[i]]
     # get overlap lengths - only look at segments > buffer
-    ovLen <- width(ranges(hits.seg[queryHits(hits.seg)==i], ranges(sv.gr), ranges(segs.gr)))
+     ovLen <- width(overlapsRanges(hits.seg[queryHits(hits.seg)==i], query=ranges(sv.gr), subject=ranges(segs.gr)))
     ov.ind <- ovLen > buffer
     x <- x[ov.ind]; ovLen <- ovLen[ov.ind]    
     id <- segs[x, paste0(SEG.id, collapse=",")] 

@@ -6,9 +6,7 @@ samTools:  /path/to/samtools
 tenX_funcs:  code/tenX_utils.R
 svaba_funcs:  code/svaba_utils.R
 plot_funcs:  code/plotting.R
-bxRescue_script:  code/barCodeOverlap.R
 combineSVCN_script:  code/combineSVABAandTITAN.R
-getLRsomaticSV_script:  code/getLongRangerSomaticSV.R
 plotSVCN_script:  code/plotTitanSvaba.R
 
 ## path to TITAN snakemake root  ##
@@ -22,32 +20,10 @@ genomeStyle:  UCSC
 cytobandFile:  data/cytoBand_hg38.txt # only need if hg38
 chrs:  c(1:22, \"X\")
 
-## LongRanger params ##
-bamFileName:  phased_possorted_bam.bam
-
-
-## standard parameters for qsub memory, runtime, pe (parallel environment)
-# use what your scheduler designates for parameters; does not apply to local run
-# invoke using:
-# snakemake -s svaba.snakefile --cluster-sync "qsub -l h_vmem={params.mem},h_rt={params.runtime} {params.pe}" -j 100 --jobscript config/cluster.sh
-std_mem:  4G
-std_runtime:  "05:00:00"  
-std_numCores:  -pe smp 1 -binding linear:1
-
 ## SVABA settings ##
 svaba_dbSNPindelVCF:  /path/to/known/indels.vcf
-svaba_mem:  3G # per core
-svaba_runtime:  "300:00:00"
-svaba_numThreads:  4
-svaba_numCores: -pe smp 4 -binding linear:4  # should match svaba_numThreads
-
-## Barcode Rescue settings ##
-bxRescue_minMapQ:  20
-bxRescue_minLength:  10000
-bxRescue_windowSize:  1000
-bxRescue_minReadOverlapSupport:  2
-bxRescue_mem:  12G
-bxRescue_runtime:  "300:00:00"
+svaba_minSPAN:  10000
+svaba_minInversionSPAN: 1000
 
 ## Plotting parameters ##
 plot_zoom:  FALSE
