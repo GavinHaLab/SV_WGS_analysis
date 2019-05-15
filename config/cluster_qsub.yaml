@@ -1,0 +1,12 @@
+__default__:
+    q:  broad
+    h_vmem: 4G
+    h_rt:   5:0:0
+    pe: smp 1
+    binding:    linear:1
+
+runSvaba:
+    h_vmem:    3G  # per-core-mem
+    h_rt:    300:00:00
+    pe: smp 4
+    binding:    linear:4

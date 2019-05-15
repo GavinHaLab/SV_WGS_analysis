@@ -28,7 +28,8 @@ option_list <- list(
   make_option(c("--plotCNAtype"), type="character", default = "titan", help = "titan or ichor; if titan, then will also plot haplotype fraction. [Default: %default]."),
   make_option(c("--plotYlim"), type = "character", default = "c(-2,6)", help = "Y limits for plotting log ratio. [Default: %default]."),
   make_option(c("--plotSize"), type = "character", default = "c(8,4)", help = "width and height in inches. [Default: %default]."),
-  make_option(c("--plotFormat"), type = "character", default = "png", help = "File format of plot. E.g. pdf or png. [Default: %default]."),
+  #make_option(c("--plotFormat"), type = "character", default = "png", help = "File format of plot. E.g. pdf or png. [Default: %default]."),
+  make_option(c("--outPlotFile"), type="character", help="Path to output figure file."),
   make_option(c("--outDir"), type="character", help="Path to output directory.")
 )
 
@@ -58,7 +59,7 @@ svFile <- opt$svFile
 cnFile <- opt$titanBinFile
 segFile <- opt$titanSegFile
 paramFile <- opt$titanParamFile
-chrStr <- as.character(eval(parse(text = opt$chrs)))
+chrStr <- as.character(eval(parse(text = "c(opt$chrs)")))
 startPos <- opt$start
 endPos <- opt$end
 zoom <- opt$zoom
@@ -70,8 +71,9 @@ cytobandFile <- opt$cytobandFile
 altSVFile <- opt$customSVFile
 plotType <- opt$plotCNAtype
 plotSize <- eval(parse(text=opt$plotSize))
-plotFormat <- opt$plotFormat
-outDir <- opt$outDir
+outPlotFile <- opt$outPlotFile
+plotFormat <- tools::file_ext(outPlotFile)
+#outDir <- opt$outDir
 width <- plotSize[1]  #6 8 
 height <- plotSize[2]  #3 3.5 #4 
 spacing <- 3
@@ -81,7 +83,7 @@ ylimSV <- ylim
 plotArrows <- FALSE
 plotSegs <- FALSE
 interchr <- TRUE
-plotHaplotypeFrac <- FALSE
+plotAllelicFrac <- FALSE
 buffer <- 1e4
 offset.factor <- 1.15 # sv drawn outside of plot
 lcol <- NULL
@@ -97,6 +99,8 @@ if (!require(bsg, character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE)) {
 
 if (zoom){
   xlim <- c(startPos, endPos)
+   startTitle <- paste0(format(round(startPos/1e6,2), nsmall=2))
+  endTitle <- paste0(format(round(endPos/1e6,2),nsmall=2), "Mb")
   cex <- 0.5
   cytoBand <- F
   xaxt <- "s"
@@ -114,10 +118,10 @@ if (zoom){
   plotIdio <- TRUE
   plotSegs <- FALSE
 }
-if (chrStr == "0" || is.null(chrStr) || chrStr != "None"){
+if (chrStr == "0" || is.null(chrStr) || chrStr == "None"){
   chrStr <- as.character(c(1:22, "X"))
-  seqlevelsStyle(chrStr) <- genomeStyle
 }
+seqlevelsStyle(chrStr) <- genomeStyle
 if (plotType == "titan"){
 	cnColor <- TRUE
 	plotAllelicFrac <- TRUE
@@ -129,9 +133,10 @@ if (!cnColor){
 }else{
   cnCol <- NULL
 }
-
-outImage <- paste0(outDir, "/", id, ".RData")
-save.image(file=outImage)
+#outPlotDir <- outDir
+#dir.create(outPlotDir)
+outImage <- gsub(plotFormat, "RData", outPlotFile)
+#save.image(file=outImage)
 
 if (!is.null(altSVFile) && altSVFile != "None"){
 	altSV <- read.delim(altSVFile, header=F, as.is=T)
@@ -145,14 +150,15 @@ if (!is.null(geneList) && geneList != "None"){
 }else{
   genes <- NULL
 }
+colnames(genes) <- c("Gene", "Chr", "Start", "End")
+seqlevelsStyle(genes$Chr) <- genomeStyle
 
 if (genomeBuild == "hg38" && file.exists(cytobandFile)){
   cytoband <- as.data.frame(fread(cytobandFile))
   names(cytoband) <- c("chrom", "start", "end", "name", "gieStain")
 }
 
-outPlotDir <- outDir
-dir.create(outPlotDir)
+
 
 
 message("Analyzing ", id)
@@ -180,8 +186,9 @@ if (yaxis == "integer"){
 if (plotType == "titan"){
 	ulp <- ulp[!is.na(Corrected_Call)]
 }
+ulp <- ulp[Chr %in% chrStr]
 ulp$Chr <- factor(ulp$Chr, levels = chrStr)
-ulp <- ulp[order(Chr)]
+ulp <- ulp[order(Chr, Start)]
 
 ############# load Combined SV (SVABA, GROC, LongRanger) ##############
 sv <- fread(svFile)
@@ -194,12 +201,16 @@ for (j in 1:length(chrStr)){
   message("Plotting ", chrStr[j])
   ###################################
   ### SNOWMAN + BARCODE RESCUE ######
-  outPlot <- paste0(outPlotDir, "/", id, "_CNA-SV-BX_",plotType,"_",chrStr[j],".",plotFormat)
-  plotTitle <- paste0(id, " (", chrStr[j],")")
+  if (genomeStyle == "NCBI"){
+  	chrTitle <- paste0("chr", chrStr[j])
+  }else{
+  	chrTitle <- chrStr[j]
+  }
+  plotTitle <- paste0(id, " (", chrTitle,")")
   if (zoom){
     ylimMax <- ulp[Chr==chrStr[j] & Start >= xlim[1] & Start <= xlim[2], max(LogRatio, na.rm=T)] + 1
-    outPlot <- paste0(outPlotDir, "/", id, "_CNA-SV-BX_",plotType,"_chr",chrStr[j],"-",startPos,"-",endPos,".pdf")
-    plotTitle <- paste0(id, " (chr", chrStr[j],":",format(round(startPos/1e6,2), nsmall=2),"Mb-",format(round(endPos/1e6,2),nsmall=2),"Mb)")
+    #outPlot <- paste0(outPlotDir, "/", id, "_CNA-SV-BX_",plotType,"_chr",chrStr[j],"-",startPos,"-",endPos,".pdf")
+    plotTitle <- paste0(id, " (",chrTitle,":",startTitle,"-",endTitle, ")")
   }else{
     xlim <- c(1, seqlengths(seqinfo)[chrStr[j]])
     ylimMax <- ulp[, max(LogRatio, na.rm=T)] + 1
@@ -209,9 +220,9 @@ for (j in 1:length(chrStr)){
   ylimSV[2] <- ylimSV[2] - 0.5
   
   if (plotFormat == "png"){
-  	png(outPlot, width = width*100, height=height*100)
+  	png(outPlotFile, width = width*100, height=height*100)
   }else{
-  	pdf(outPlot, width = width, height=height)
+  	pdf(outPlotFile, width = width, height=height)
 	}
   if (plotAllelicFrac){ par(mfrow=c(2,1)); spacing <- 0  }
 	
@@ -247,43 +258,21 @@ for (j in 1:length(chrStr)){
 										endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
   	}	
 
-    ## plot LongRanger arcs ##
-    message("Plotting longranger")
-    plotRearrangementArcs(sv[Tool=="LONGRANGER"], cn=as.data.frame(ulp), chr=chrStr[j], 
-                  interchr = interchr, plotAtCentre = plotAtCentre,
-                  xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1,
-                  centreLine=centreLine, buffer=buffer, lcol=lrCol, arr.col=lrCol, 
-                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
     ## plot BX Rescue arcs ##
-    message("Plotting CN rescue")
-    plotRearrangementArcs(sv[Tool=="SVABA" & (support=="CN")], 
+    #message("Plotting CN rescue")
+    plotRearrangementArcs(sv[support=="CN"], 
     							cn=as.data.frame(ulp), 
     							chr=chrStr[j], interchr = interchr, plotAtCentre = plotAtCentre,
                   xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1, offset.factor=offset.factor,
                   centreLine=centreLine, buffer=buffer, lcol=svabaCol, arr.col=svabaCol, 
                   endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
-    message("Plotting BX rescue")
-    plotRearrangementArcs(sv[Tool=="SVABA" & (support=="BX")], 
-    							cn=as.data.frame(ulp), 
-    							chr=chrStr[j], interchr = interchr, plotAtCentre = plotAtCentre,
-                  xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1, offset.factor=offset.factor,
-                  centreLine=centreLine, buffer=buffer, lcol=rescueCol, arr.col=rescueCol, 
-                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
-    ## plot SVABA arcs ##
-    message("Plotting svaba")
-    plotRearrangementArcs(sv[Tool=="SVABA" & support=="SVABA"], cn=as.data.frame(ulp), 
+     ## plot SVABA arcs ##
+    #message("Plotting svaba")
+    plotRearrangementArcs(sv[support=="SVABA"], cn=as.data.frame(ulp), 
     							chr=chrStr[j], interchr = interchr, plotAtCentre = plotAtCentre,
                   xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1, offset.factor=offset.factor,
                   centreLine=centreLine, buffer=buffer, lcol=svabaCol, arr.col=svabaCol, 
-                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
-    ## plot GROCSVS arcs ##
-    message("Plotting grocsvs")
-    plotRearrangementArcs(sv[Tool=="GROCSVS"], cn=as.data.frame(ulp), chr=chrStr[j], 
-                  interchr = interchr, plotAtCentre = plotAtCentre,
-                  xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1, offset.factor=offset.factor,
-                  centreLine=centreLine, buffer=buffer, lcol=grocCol, arr.col=grocCol, 
-                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)
-  }
+                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)  }
   
   if (plotAllelicFrac){
     message("Plotting allelic fraction")
@@ -297,7 +286,7 @@ for (j in 1:length(chrStr)){
     }else{
       pI <- plotIdiogram(chrStr[j], build="hg19", unit="bp", label.y=-0.6, new=FALSE, ylim=c(-0.3,-0.15))
     }
-  }else{ # not plotting haplotype fraction
+  }else{ # not plotting allelic fraction
     if (!zoom){
       par(xpd=NA)
       if (genomeBuild == "hg38" && file.exists(cytobandFile)){

@@ -8,7 +8,7 @@ __default__:
 
 runSvaba:
     time: "100:0:0"
-    mem:    12G
+    mem:    12G #total memory (i.e. 3Gb per core)
     ncpus:  4
     ntasks: 1
 
