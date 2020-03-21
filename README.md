@@ -7,7 +7,7 @@ This workflow will run the [SvABA](https://github.com/walaj/svaba) structural va
 Gavin Ha  
 Fred Hutchinson Cancer Research Center  
 contact: <gavinha@gmail.com> or <gha@fredhutch.org>  
-Date: May 15, 2019
+Date: May 16, 2019
 
 ## Requirements
 ### Software packages or libraries
