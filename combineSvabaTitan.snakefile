@@ -20,7 +20,8 @@ rule all:
   	expand("results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.cn.txt", tumor=config["pairings"]),
   	expand("results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.sv.bedpe", tumor=config["pairings"]),
   	#expand(directory("results/plotSVABAandTITAN/{tumor}"), tumor=config["pairings"])
-  	expand("results/plotSVABAandTITAN/{tumor}/{tumor}_CNA-SV-BX_{type}_chr{chr}.{format}", tumor=config["pairings"], type=config["plot_type"], chr=CHRS, format=config["plot_format"])
+  	expand("results/plotSVABAandTITAN/{tumor}/{tumor}_CNA-SV-BX_{type}_chr{chr}.{format}", tumor=config["pairings"], type=config["plot_type"], chr=CHRS, format=config["plot_format"]),
+  	expand("results/plotCircos/{tumor}/{tumor}_Circos.pdf", tumor=config["pairings"])
 
 rule combineSVABAandTITAN:
 	input:
@@ -73,3 +74,18 @@ rule plotSVABAandTITAN:
 		"logs/plotSVABAandTITAN/{tumor}/{tumor}_CNA-SV-BX_{type}_chr{chr}.{format}.log"
 	shell:
 		"Rscript {params.plotSVCNscript} --id {wildcards.tumor} --svaba_funcs {params.svabafuncs} --plot_funcs {params.plotfuncs} --titan_libdir {params.libdir} --svFile {input.svabaVCF} --titanBinFile {input.titanBinFile} --titanSegFile {input.titanSegFile} --titanParamFile {input.titanParamFile} --chrs {wildcards.chr} --genomeBuild {params.genomeBuild} --genomeStyle {params.genomeStyle} --cytobandFile {params.cytobandFile} --start {params.start} --end {params.end} --zoom {params.zoom} --plotYlim \"{params.ylim}\" --geneFile {params.geneFile} --plotCNAtype {params.type} --plotSize \"{params.size}\" --outPlotFile {output} > {log} 2> {log}" 
+
+rule plotCircos:
+	input:
+		svabaBedpe="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.sv.bedpe",
+		svabaTitan="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.cn.txt"
+	output:
+		"results/plotCircos/{tumor}/{tumor}_Circos.pdf"
+	params:
+		plotCIRCOSscript=config["plotCircos_script"],
+		genomeBuild=config["genomeBuild"]
+	log:
+		"logs/plotCircos/{tumor}/{tumor}_Circos.log"
+	shell:
+		"Rscript {params.plotCIRCOSscript} --id {wildcards.tumor} --svFile {input.svabaBedpe} --cnFile {input.svabaTitan} --genomeBuild {params.genomeBuild} --outPlotFile {output} > {log} 2> {log}"
+
