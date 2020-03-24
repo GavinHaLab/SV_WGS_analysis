@@ -25,7 +25,7 @@ option_list <- list(
   make_option(c("--chrs"), type = "character", default = "c(1:22, 'X')", help = "Chromosomes to plot; string [Default: %default"),
   make_option(c("--start"), type = "integer", default = NULL, help = "Start coordinate for zoom plots"),
   make_option(c("--end"), type = "integer", default = NULL, help = "End coordinate for zoom plots"),
-  make_option(c("--units"), type = "character", default = "integer", help = "integer or logratio to plot for y-axis units. Default: [%default]"),
+  make_option(c("--units"), type = "character", default = "integer", help = "integer or logratio to plot for y-axis units. Default: [%default]"), 
   make_option(c("--plotCNAtype"), type="character", default = "titan", help = "titan or ichor; if titan, then will also plot haplotype fraction. [Default: %default]."),
   make_option(c("--plotYlim"), type = "character", default = "c(-2,6)", help = "Y limits for plotting log ratio. [Default: %default]."),
   make_option(c("--plotSize"), type = "character", default = "c(8,4)", help = "width and height in inches. [Default: %default]."),
@@ -108,7 +108,6 @@ if (zoom){
   plotAtCentre <- FALSE
   cnColor <- FALSE
   plotIdio <- FALSE
-  exclude.na.snp <- FALSE
 }else{
   xlim <- NULL
   cex <- 0.25
@@ -119,23 +118,17 @@ if (zoom){
   cnColor <- FALSE
   plotIdio <- TRUE
   plotSegs <- FALSE
-  exclude.na.snp <- TRUE
 }
 if (chrStr == "0" || is.null(chrStr) || chrStr == "None"){
   chrStr <- as.character(c(1:22, "X"))
 }
 seqlevelsStyle(chrStr) <- genomeStyle
-if (plotType == "titan"){
-	cnColor <- TRUE
+if (plotType == "titan" ){
 	plotAllelicFrac <- TRUE
 	height <- height * 1.5
 }
-
-if (!cnColor){
-  cnCol <- rep("#000000", 30)
-}else{
-  cnCol <- NULL
-}
+cnColor <- TRUE
+cnCol <- NULL
 #outPlotDir <- outDir
 #dir.create(outPlotDir)
 outImage <- gsub(plotFormat, "RData", outPlotFile)
@@ -162,29 +155,25 @@ if (genomeBuild == "hg38" && file.exists(cytobandFile)){
 }
 
 
-
-
 message("Analyzing ", id)
 ulp <- fread(cnFile)
-segs <- fread(segFile)
-#segs$median <- segs$seg.mean
-#segs$chr <- segs$chrom
-#segs$state <- segs$state.num
+colnames(ulp) <- c("Chr", "Start", "End", "copy.number", "event", "LogRatio", "subclone.status", "Corrected_Copy_Number", "Corrected_Call", "logR_Copy_Number")
 params <- read.delim(grep(id, paramFile, value=T), header=F, as.is=T, nrow=2)
 purity <- 1 - as.numeric(params[1, 2]) # TITAN normal contamination
 ploidyT <- as.numeric(params[2, 2])
 normCN <- 2
 ploidyS <- purity * ploidyT + (1-purity) * normCN
 if (yaxis == "integer"){
-	ulp[!grepl("X",Chr), LogRatio := log2(logRbasedCN(LogRatio, purity, ploidyT, cn=2))]
-	ulp[grepl("X",Chr), LogRatio := log2(logRbasedCN(LogRatio, purity, ploidyT, cn=1))]
-	colName <- "logR_Copy_Number"
+  #ulp[Chr!="X", LogRatio := log2(logRbasedCN(LogRatio, purity, ploidyT, cn=2))]
+  #ulp[Chr=="X", LogRatio := log2(logRbasedCN(LogRatio, purity, ploidyT, cn=1))]
+  colName <- "logR_Copy_Number"
 }else{
-	ulp[, LogRatio := LogRatio + log2(ploidyS / 2)]
-	segs$LogRatio <- segs$Median_logR
-	segs$LogRatio <- segs$LogRatio + log2(ploidyS / 2)
-	colName <- "LogRatio"
+  ulp[, LogRatio := LogRatio + log2(ploidyS / 2)]
+  #segs$LogRatio <- segs$Median_logR
+  #segs$LogRatio <- segs$LogRatio + log2(ploidyS / 2)
+  colName <- "LogRatio"
 }
+
 # exclude data points not analyzed by titan
 if (plotType == "titan"){
 	ulp <- ulp[!is.na(Corrected_Call)]
@@ -193,21 +182,13 @@ ulp <- ulp[Chr %in% chrStr]
 ulp$Chr <- factor(ulp$Chr, levels = chrStr)
 ulp <- ulp[order(Chr, Start)]
 
-## for plotting full chromosomes, exclude rows where it is not a SNP
-# usually, these rows are ichorCNA bins and can contain noisy data
-# for zoom, we leave some of these in to avoid gaps in the plots
-if (exclude.na.snp){
-	ulp <- ulp[!is.na(Position)]
-}
-
 ############# load Combined SV (SVABA, GROC, LongRanger) ##############
 sv <- fread(svFile)
 #save.image(file=outImage)
 
 #####################################
 ########## PLOT CHR RESULTS #########
-#####################################	
-for (pt in c("LogRatio", "Segments")){ 
+#####################################	 
 for (j in 1:length(chrStr)){
   message("Plotting ", chrStr[j])
   ###################################
@@ -230,35 +211,22 @@ for (j in 1:length(chrStr)){
   ylimSV <- ylim
   ylimSV[2] <- ylimSV[2] - 0.5
   
-  if (pt == "Segments"){
-  	outPlotTypeFile <- gsub(plotFormat, paste0("segs.", plotFormat), outPlotFile)
-  }else{
-  	outPlotTypeFile <- outPlotFile
-  }
   if (plotFormat == "png"){
-  	png(outPlotTypeFile, width = width*100, height=height*100)
+  	png(outPlotFile, width = width*100, height=height*100)
   }else{
-  	pdf(outPlotTypeFile, width = width, height=height)
-  }
+  	pdf(outPlotFile, width = width, height=height)
+	}
   if (plotAllelicFrac){ par(mfrow=c(2,1)); spacing <- 0  }
 	
   if (plotSegs) { segsToPlot <- segs } else { segsToPlot <- NULL}
   
   if (grepl("X", chrStr[j])) { cnCol <- rep("#000000", 30) }
   message("Plotting read depth CN")
-  if (pt == "LogRatio"){
-	  plotTitanIchorCNA(as.data.frame(ulp), segs=segsToPlot, chr=chrStr[j], colName=colName, 
-		  cytoBand=FALSE, geneAnnot=genes, purity = purity, ploidyT = NULL, yaxis=yaxis, cnCol = cnCol,
-		  yrange=ylim, xlim=xlim, spacing=spacing, xaxt=xaxt, cex = cex, gene.cex = 1,
-		  plot.title = plotTitle)
-  }else{
-	  segs.tmp <- copy(segs)
-	  maxCorCN <- segs[Chromosome==chrStr[j], max(Corrected_Copy_Number)]
-	  setnames(segs.tmp, c("Start", "End"), c("Start_Position.bp.", "End_Position.bp."))
-	  plotSegmentMedians(dataIn=segs.tmp, chr=chrStr[j], resultType = "LogRatio", plotType = "CopyNumber", 
-	  		plotCorrectedCN = T, plot.new=T, ylim=c(-2,maxCorCN), cex.axis=1.5, cex.lab=1.5, cex.main=1.5, 
-			spacing=spacing, main = plotTitle, xlab="")
-  }
+  plotTitanIchorCNA(as.data.frame(ulp), segs=segsToPlot, chr=chrStr[j], colName=colName, 
+      cytoBand=FALSE, geneAnnot=genes, purity = purity, ploidyT = NULL, yaxis=yaxis, cnCol = cnCol,
+      yrange=ylim, xlim=xlim, spacing=spacing, xaxt=xaxt, cex = cex, gene.cex = 1,
+      plot.title = plotTitle)
+
   if (nrow(sv) > 0){
     centreLine <- 0
     
@@ -296,8 +264,7 @@ for (j in 1:length(chrStr)){
     							chr=chrStr[j], interchr = interchr, plotAtCentre = plotAtCentre,
                   xlim=xlim, arcHeight=ylimSV, ploidy = NULL, lty = 1, offset.factor=offset.factor,
                   centreLine=centreLine, buffer=buffer, lcol=svabaCol, arr.col=svabaCol, 
-                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)  
-  }
+                  endhead = plotArrows, arr.pos = 1.0, minSPAN = 0)  }
   
   if (plotAllelicFrac){
     message("Plotting allelic fraction")
@@ -322,7 +289,7 @@ for (j in 1:length(chrStr)){
       }
     }
   }
-}
+
   
   dev.off()
 		

@@ -3,7 +3,7 @@ configfile: "config/samples.yaml"
 
 import glob
 def getTITANpath(base, id, ext):
-  return glob.glob(''.join([base, "results/titan/hmm/optimalClusterSolution/", id, "_cluster*", ext]))
+  return glob.glob(''.join([base, "results/titan/optimalClusterSolution/", id, "_cluster*", ext]))
 
 #TUM, CLUST = glob_wildcards("../../TITAN/snakemake/results/titan/optimalClusterSolution/{tum}_cluster1.titan.ichor.cna.txt")
 #SEG,CLUST = glob_wildcards(config["titanPath"], "/results/titan/optimalClusterSolution/{tumor}_cluster{clust}.titan.ichor.cna.txt")
