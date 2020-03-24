@@ -169,7 +169,7 @@ plotTitanIchorCNA <- function(dataIn, param = NULL, colName = "LogRatio", callCo
       zero <- 0.5  
       cn <- c(0, 1, 2, 4, `^`(2, 3:(yrange[2]+1)))
       #ploidyToUse <- ploidyS
-      if (i == "X"){
+      if (i == "X" | i=="chrX"){
         normCN <- 1
         zero <- 0.25
         cn <- c(0, 1, 2, 4, `^`(2, 3:(yrange[2]+1)))
