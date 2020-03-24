@@ -77,8 +77,8 @@ rule plotSVABAandTITAN:
 
 rule plotCircos:
 	input:
-		svabaBedpe="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.sv.bedpe",
-		svabaTitan="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.cn.txt"
+		svabaTitanBedpe="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.sv.bedpe",
+		svabaTitanCN="results/combineSVABAandTITAN/{tumor}/{tumor}.svabaTitan.cn.txt"
 	output:
 		"results/plotCircos/{tumor}/{tumor}_Circos.pdf"
 	params:
@@ -87,5 +87,5 @@ rule plotCircos:
 	log:
 		"logs/plotCircos/{tumor}/{tumor}_Circos.log"
 	shell:
-		"Rscript {params.plotCIRCOSscript} --id {wildcards.tumor} --svFile {input.svabaBedpe} --cnFile {input.svabaTitan} --genomeBuild {params.genomeBuild} --outPlotFile {output} > {log} 2> {log}"
+		"Rscript {params.plotCIRCOSscript} --id {wildcards.tumor} --svFile {input.svabaTitanBedpe} --cnFile {input.svabaTitanCN} --genomeBuild {params.genomeBuild} --outPlotFile {output} > {log} 2> {log}"
 
