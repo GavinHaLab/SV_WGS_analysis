@@ -124,7 +124,7 @@ segs <- fread(segFile)
 segs <- cbind(SEG.id = 1:nrow(segs), segs)	
 sv.seg <- getSegSVoverlap(segs, svaba, event.cn=unique(segs$Corrected_Call), buffer=cn.buffer)
 sv.seg.interChr <- getSegSVoverlap(segs, svaba, event.cn=unique(segs$Corrected_Call), buffer=cn.buffer, interChr=TRUE)
-sv.seg <- rbind(sv.seg, sv.seg.interChr)
+sv.seg <- rbind(sv.seg, sv.seg.interChr, fill = TRUE)
 # intra-chr
 indCN <- sv.seg[support %in% c("SVABA"), SV.id]
 svaba[SV.id %in% indCN, support := "CN"]

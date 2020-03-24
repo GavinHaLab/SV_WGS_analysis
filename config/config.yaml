@@ -7,6 +7,7 @@ svaba_funcs:  code/svaba_utils.R
 plot_funcs:  code/plotting.R
 combineSVCN_script:  code/combineSVABAandTITAN.R
 plotSVCN_script:  code/plotTitanSvaba.R
+plotCircos_script: code/create_circosPlot.R
 
 ## path to TITAN snakemake root  ##
 titan_libdir:  /path/to/TitanCNA/
@@ -23,6 +24,7 @@ chrs:  c(1:22, \"X\")
 svaba_dbSNPindelVCF:  /path/to/known/indels.vcf
 svaba_minSPAN:  10000
 svaba_minInversionSPAN: 1000
+svaba_numThreads: 4
 
 ## Plotting parameters ##
 plot_zoom:  FALSE
